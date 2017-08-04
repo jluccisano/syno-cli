@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"crypto/tls"
 )
 
 type Client struct {
@@ -50,59 +51,23 @@ func (c *Client) Login(user string, password string) error {
 	return err
 }
 
-type Share struct {
-	Description string `json:"desc"`
-	Encryption  EncryptionStatus
-	Name        string
-	vol_path    string
-}
-
-type ListSharesResponse struct {
-	synoBaseResponse
-	Data struct {
-		Shares []Share
-	}
-}
-
-func (c *Client) ListShares() ([]Share, error) {
+func (c *Client) Enable() error {
 	params := map[string]string{
-		"shareType":  "all",
-		"additional": "[\"encryption\",\"hidden\"]",
+		"cameraIds": "13",
 	}
-
-	r := ListSharesResponse{synoBaseResponse: synoBaseResponse{}}
-	err := c.request("_______________________________________________________entry.cgi",
-		"SYNO.Core.Share", "1", "list", params, &r)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return r.Data.Shares, nil
-}
-
-func (c *Client) LockShare(name string) error {
-	params := map[string]string{
-		"name": name,
-	}
-
 	r := synoBaseResponse{}
-	err := c.request("_______________________________________________________entry.cgi",
-		"SYNO.Core.Share.Crypto", "1", "encrypt", params, &r)
-
+	err := c.request("entry.cgi",
+		"SYNO.SurveillanceStation.Camera", "8", "Enable", params, &r)
 	return err
 }
 
-func (c *Client) UnlockShare(name string, password string) error {
+func (c *Client) Disable() error {
 	params := map[string]string{
-		"name":     name,
-		"password": password,
+		"cameraIds": "13",
 	}
-
 	r := synoBaseResponse{}
-	err := c.request("_______________________________________________________entry.cgi",
-		"SYNO.Core.Share.Crypto", "1", "decrypt", params, &r)
-
+	err := c.request("entry.cgi",
+		"SYNO.SurveillanceStation.Camera", "8", "Disable", params, &r)
 	return err
 }
 
@@ -120,7 +85,12 @@ func (c *Client) request(path string, api string, api_version string, method str
 	url := fmt.Sprintf("%s/%s?%s", c.api_base, path, p.Encode())
 
 	log.Printf("synoapi.Client: GET %s", url)
-	resp, err := http.Get(url)
+	tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+    client := &http.Client{Transport: tr}
+    resp, err := client.Get(url)
+
 	if err != nil {
 		return NewClientError("HTTP request failed", err)
 	}
