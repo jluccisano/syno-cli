@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 	"gopkg.in/alecthomas/kingpin.v1"
-	"frister.net/go/syno-cli/synoapi"
+	"jluccisano/go/syno-cli/synoapi"
 )
 
 var (
